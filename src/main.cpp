@@ -241,6 +241,9 @@ int main()
         shader.setVec3("light.ambient",glm::vec3(0.3));
         shader.setVec3("light.diffuse",glm::vec3(0.5));
         shader.setVec3("light.specular",glm::vec3(1.0));
+        shader.setFloat("light.constant",1.0f);
+        shader.setFloat("light.linear",0.09f);
+        shader.setFloat("light.qudratic",0.032f);
 
         view = glm::lookAt(cameraPos,cameraFront + cameraPos,cameraUp);
         shader.setMat4("view",view);

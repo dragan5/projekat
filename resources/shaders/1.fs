@@ -11,8 +11,11 @@ struct Light{
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
-    vec3 lightPos;
+    vec3 position;
     vec3 direction;
+    float constant;
+    float linear;
+    float quadratic;
 };
 
 out vec4 FragColor;
@@ -20,7 +23,6 @@ in vec2 tc;
 in vec3 normal;
 in vec3 fragPos;
 
-//uniform sampler2D t0;
 uniform vec3 viewPos;
 uniform Material material;
 uniform Light light;
@@ -40,8 +42,9 @@ void main()
     float spec = pow(max(dot(viewDir,reflectDir),0.0),material.shininess);
     vec3 specular = texture(material.specular,tc).rgb * spec * light.specular;
 
-    vec3 result = ambient + diffuse + specular;
+    float distance = length(light.position - fragPos);
+    float att = 1.0/(light.constant + light.linear*distance + light.quadratic*distance*distance);
+
+    vec3 result = att*(ambient + diffuse + specular);
     FragColor = vec4(result,1.0);
-//     FragColor = vec4(1.0,1.0,0.0,1.0);
-    //FragColor = texture(t0,tc);
 }
