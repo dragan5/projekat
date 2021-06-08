@@ -103,6 +103,7 @@ int main()
             0.5f,  0.5f, -0.5f,  1.0f, 1.0f,0.0,0.0,-1.0,
             -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,0.0,0.0,-1.0,
             -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,0.0,0.0,-1.0,
+
             -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,0.0f,  0.0f, 1.0f,
             0.5f, -0.5f,  0.5f,  1.0f, 0.0f,0.0f,  0.0f, 1.0f,
             0.5f,  0.5f,  0.5f,  1.0f, 1.0f,0.0f,  0.0f, 1.0f,
@@ -139,6 +140,40 @@ int main()
             -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,0.0f,  1.0f,  0.0f
     };
 
+    float vertices2[] = {
+            -0.5f, -0.5f, -0.5f,
+            0.5f, -0.5f, -0.5f,
+            0.5f,  0.5f, -0.5f,
+            -0.5f,  0.5f, -0.5f,
+
+            -0.5f, -0.5f,  0.5f,
+            0.5f, -0.5f,  0.5f,
+            0.5f,  0.5f,  0.5f,
+            -0.5f,  0.5f,  0.5f,
+
+            -0.5f,  0.5f,  0.5f,
+            -0.5f,  0.5f, -0.5f,
+            -0.5f, -0.5f, -0.5f,
+            -0.5f, -0.5f,  0.5f,
+
+            0.5f,  0.5f,  0.5f,
+            0.5f,  0.5f, -0.5f,
+            0.5f, -0.5f, -0.5f,
+            0.5f, -0.5f,  0.5f,
+
+            -0.5f, -0.5f, -0.5f,
+            0.5f, -0.5f, -0.5f,
+            0.5f, -0.5f,  0.5f,
+            -0.5f, -0.5f,  0.5f,
+
+
+            -0.5f,  0.5f, -0.5f,
+            0.5f,  0.5f, -0.5f,
+            0.5f,  0.5f,  0.5f,
+            -0.5f,  0.5f,  0.5f,
+
+    };
+
     glm::vec3 cubePositions[] = {
             glm::vec3( 0.0f,  0.0f,  0.0f),
             glm::vec3( 2.0f,  5.0f, -15.0f),
@@ -150,6 +185,26 @@ int main()
             glm::vec3( 1.5f,  2.0f, -2.5f),
             glm::vec3( 3.5f,  0.2f, -1.5f),
             glm::vec3(5.3f,  1.0f, -1.5f)
+    };
+
+    unsigned int indices[] = {
+            0,1,2,
+            0,2,3,
+
+            4,5,6,
+            4,6,7,
+
+            8,9,10,
+            8,10,11,
+
+            12,13,14,
+            12,14,15,
+
+            16,17,18,
+            16,18,19,
+
+            20,21,22,
+            20,22,23
     };
 
 
@@ -169,12 +224,23 @@ int main()
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float )));
     glEnableVertexAttribArray(2);
 
-    unsigned int izvorVAO;
+
+    unsigned int izvorVAO,EBO,VBO2;
     glGenVertexArrays(1,&izvorVAO);
     glBindVertexArray(izvorVAO);
-    glBindBuffer(GL_ARRAY_BUFFER,VBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+
+    glGenBuffers(1, &VBO2);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
+
+    glGenBuffers(1,&EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(indices),indices,GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER,VBO);
 
     unsigned int VAO2;
     glGenVertexArrays(1,&VAO2);
@@ -337,7 +403,8 @@ int main()
         izvor.setMat4("model",model);
 
         glBindVertexArray(izvorVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDrawElements(GL_TRIANGLES,36,GL_UNSIGNED_INT,0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
