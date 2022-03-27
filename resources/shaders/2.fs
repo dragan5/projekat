@@ -1,3 +1,4 @@
+//zute kocke
 #version 330 core
 
 struct Material {
@@ -35,47 +36,49 @@ uniform vec3 viewPos;
 uniform Material material;
 uniform Dirlight dlight;
 uniform Pointlight plight;
+uniform Pointlight bluelight;
 
 void main()
 {
-    vec3 normal = normalize(normal);
     vec3 viewDir = normalize(viewPos - fragPos);
+    vec3 norm = normalize(normal);
 
-    vec3 result = calcdirlight(dlight,normal,viewDir,material) + calcpointlight(plight,normal,viewDir,fragPos,material);
-
+    vec3 result = calcdirlight(dlight,norm,viewDir,material) + calcpointlight(plight,norm,viewDir,fragPos,material)
+     + calcpointlight(bluelight,norm,viewDir,fragPos,material);
     FragColor = vec4(result,1.0);
 }
 
-vec3 calcdirlight(Dirlight light,vec3 normal,vec3 viewDir,Material material){
+vec3 calcdirlight(Dirlight light,vec3 norm,vec3 viewDir,Material material){
 
-    vec3 lightDir = normalize(-dlight.direction);
-    float diff = max(dot(normal,lightDir),0.0);
+    vec3 lightDir = normalize(-light.direction);
+    float diff = max(dot(norm,lightDir),0.0);
 
-    vec3 reflectDir = reflect(-lightDir,normal);
+    vec3 reflectDir = reflect(-lightDir,norm);
     float spec = pow(max(dot(viewDir,reflectDir),0.0),material.shininess);
 
-    vec3 ambient  = dlight.ambient * material.ambient;
-    vec3 diffuse = material.diffuse * diff * dlight.diffuse;
-    vec3 specular = material.specular * spec * dlight.specular;
+    vec3 ambient  = light.ambient * material.ambient;
+    vec3 diffuse = material.diffuse * diff * light.diffuse;
+    vec3 specular = material.specular * spec * light.specular;
 
 
     return (ambient + diffuse + specular);
 }
 
-vec3 calcpointlight(Pointlight light,vec3 normal,vec3 viewDir,vec3 fragPos,Material material){
+vec3 calcpointlight(Pointlight light,vec3 norm,vec3 viewDir,vec3 fragPos,Material material){
 
-    vec3 lightDir = normalize(plight.position - fragPos);
-    float diff = max(dot(normal,lightDir),0.0);
+    vec3 lightDir = normalize(light.position - fragPos);
+    float diff = max(dot(norm,lightDir),0.0);
 
-    vec3 reflectDir = reflect(-lightDir,normal);
-    float spec = pow(max(dot(viewDir,reflectDir),0.0),material.shininess);
+    vec3 reflectDir = reflect(-lightDir,norm);
+    vec3 halfwayDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(halfwayDir,norm),0.0),material.shininess);
 
-    vec3 ambient  = plight.ambient * material.ambient;
-    vec3 diffuse = material.diffuse * diff * plight.diffuse;
-    vec3 specular = material.specular * spec * plight.specular;
+    vec3 ambient  = light.ambient * material.ambient;
+    vec3 diffuse = material.diffuse * diff * light.diffuse;
+    vec3 specular = material.specular * spec * light.specular;
 
-    float distance = length(plight.position - fragPos);
-    float att = 1.0/(plight.constant + plight.linear*distance + plight.quadratic*distance*distance);
+    float distance = length(light.position - fragPos);
+    float att = 1.0/(light.constant + light.linear*distance + light.quadratic*distance*distance);
 
     return att*(ambient + diffuse + specular);
 }

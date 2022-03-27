@@ -40,16 +40,6 @@ float fov   =  45.0f;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-struct Pointlight{
-    glm::vec3 position;
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
-    float constant;
-    float linear;
-    float quadratic;
-};
-
 int main()
 {
     // glfw: initialize and configure
@@ -88,13 +78,20 @@ int main()
     stbi_set_flip_vertically_on_load(true);
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+//    glEnable(GL_CULL_FACE);
+//    glCullFace(GL_BACK);
 
     // build and compile our shader program
     // ------------------------------------
     Shader shader("resources/shaders/1.vs", "resources/shaders/1.fs");
     Shader s1("resources/shaders/2.vs", "resources/shaders/2.fs");
     Shader izvor("resources/shaders/izvor.vs", "resources/shaders/izvor.fs");
-    Shader mshader("resources/shaders/3.vs", "resources/shaders/3.fs");
+    Shader mshader("resources/shaders/model.vs", "resources/shaders/model.fs");
+    Shader windowShader("resources/shaders/window.vs", "resources/shaders/window.fs");
+    Shader aaShader("resources/shaders/aa.vs", "resources/shaders/aa.fs");
+    Shader hdrShader("resources/shaders/hdr.vs", "resources/shaders/hdr.fs");
 
     float vertices[] = {
             -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,0.0,0.0,-1.0,
@@ -174,6 +171,24 @@ int main()
 
     };
 
+        float vertices3[] = {
+            0.5f, 0.5f, 1.0f,0.0f,0.0f,
+            0.5f, -0.5f, 0.0f,0.0f,1.0f,
+            -0.5f, -0.5f, 0.0f,1.0f,1.0f,
+            -0.5f, 0.5f, 1.0f,1.0f,0.0f
+    };
+
+    float transparentVertices[] = {
+            // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
+            0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
+            0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+            2.0f, -1.0f,  0.0f,  1.0f,  1.0f,
+
+            0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
+            2.0f, -1.0f,  0.0f,  1.0f,  1.0f,
+            2.0f,  1.0f,  0.0f,  1.0f,  0.0f
+    };
+
     glm::vec3 cubePositions[] = {
             glm::vec3( 0.0f,  0.0f,  0.0f),
             glm::vec3( 2.0f,  5.0f, -15.0f),
@@ -205,6 +220,17 @@ int main()
 
             20,21,22,
             20,22,23
+    };
+
+    float quadVertices[] = {   // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+            // positions   // texCoords
+            -1.0f,  1.0f,  0.0f, 1.0f,
+            -1.0f, -1.0f,  0.0f, 0.0f,
+            1.0f, -1.0f,  1.0f, 0.0f,
+
+            -1.0f,  1.0f,  0.0f, 1.0f,
+            1.0f, -1.0f,  1.0f, 0.0f,
+            1.0f,  1.0f,  1.0f, 1.0f
     };
 
 
@@ -240,40 +266,101 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    glBindBuffer(GL_ARRAY_BUFFER,VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-    unsigned int VAO2;
+    unsigned int VAO2;  //zute kocke
     glGenVertexArrays(1,&VAO2);
     glBindVertexArray(VAO2);
-    glBindBuffer(GL_ARRAY_BUFFER,VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float )));
-    glEnableVertexAttribArray(2);
 
     unsigned int VAO3;
     glGenVertexArrays(1,&VAO3);
     glBindVertexArray(VAO3);
-    glBindBuffer(GL_ARRAY_BUFFER,VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    unsigned int transparentVAO, transparentVBO;
+    glGenVertexArrays(1, &transparentVAO);
+    glGenBuffers(1, &transparentVBO);
+    glBindVertexArray(transparentVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices), transparentVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glBindVertexArray(0);
+
+    unsigned int quadVAO, quadVBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+    unsigned int framebuffer;
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    // create a multisampled color attachment texture
+    unsigned int textureColorBufferMultiSampled;
+    glGenTextures(1, &textureColorBufferMultiSampled);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, textureColorBufferMultiSampled);
+    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGB, SCR_WIDTH, SCR_HEIGHT, GL_TRUE);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, textureColorBufferMultiSampled, 0);
+    // create a (also multisampled) renderbuffer object for depth and stencil attachments
+    unsigned int rbo;
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    unsigned int hdrFBO;
+    glGenFramebuffers(1, &hdrFBO);
+    // create floating point color buffer
+    unsigned int colorBuffer;
+    glGenTextures(1, &colorBuffer);
+    glBindTexture(GL_TEXTURE_2D, colorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // create depth buffer (renderbuffer)
+    unsigned int rboDepth;
+    glGenRenderbuffers(1, &rboDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
+    // attach buffers
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "Framebuffer not complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     unsigned int t0 = load_texture("resources/textures/container2.png");
     unsigned int t1 = load_texture("resources/textures/container2_specular_colored.png");
+    unsigned int t2 = load_texture("resources/textures/window.png");
     shader.use();
     shader.setInt("material.diffuse",0);
     shader.setInt("material.specular",1);
+    aaShader.setInt("screenTexture",0);
+    windowShader.setInt("texture1",0);
 
-    //Model ourModel(FileSystem::getPath("resources/objects/pumpkin.obj"));
     Model ourModel(FileSystem::getPath("resources/objects/box/box.obj"));
-
-//    shader.use();
-//    shader.setUniform1i("t0",0);
 
 
     //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
@@ -287,6 +374,13 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = glm::mat4(1.0f);
         glm::mat4 proj = glm::mat4(1.0f);
@@ -294,47 +388,37 @@ int main()
         proj = glm::perspective(glm::radians(fov),(float)SCR_WIDTH/SCR_HEIGHT,0.1f,100.0f);
 
         shader.use();
-
         shader.setMat4("model",model);
         shader.setMat4("view",view);
         shader.setMat4("proj",proj);
 
-        shader.setVec3("light.lightPos",cubePositions[9]);
-        shader.setVec3("light.direction",glm::vec3(-0.2,-1.1,-0.3));
+        shader.setVec3("plight.position",cubePositions[9]);
         shader.setVec3("viewPos",cameraPos);
-        shader.setFloat("material.shininess",64.0f);
+        shader.setFloat("material.shininess",16.0f);
 
-        shader.setVec3("light.ambient",glm::vec3(0.3));
-        shader.setVec3("light.diffuse",glm::vec3(0.5));
-        shader.setVec3("light.specular",glm::vec3(1.0));
-        shader.setFloat("light.constant",1.0f);
-        shader.setFloat("light.linear",0.09f);
-        shader.setFloat("light.qudratic",0.032f);
+        shader.setVec3("plight.ambient",glm::vec3(0.3f));
+        shader.setVec3("plight.diffuse",glm::vec3(0.5f));
+        shader.setVec3("plight.specular",glm::vec3(1.0f));
+        shader.setFloat("plight.constant",1.0f);
+        shader.setFloat("plight.linear",0.09f);
+        shader.setFloat("plight.qudratic",0.032f);
+
+        shader.setVec3("bluelight.position",glm::vec3(0.0f,-5.0f,-20.0f));
+        shader.setVec3("bluelight.ambient",glm::vec3(0.1f,0.3f,100.0f));
+        shader.setVec3("bluelight.diffuse",glm::vec3(0.1f,0.3f,100.0f));
+        shader.setVec3("bluelight.specular",glm::vec3(0.9f));
+        shader.setFloat("bluelight.constant",1.0f);
+        shader.setFloat("bluelight.linear",0.09f);
+        shader.setFloat("bluelight.qudratic",0.032f);
+
+        shader.setVec3("dlight.direction",glm::vec3(0,0,-1));
+        shader.setVec3("dlight.ambient",glm::vec3(0.2f));
+        shader.setVec3("dlight.diffuse",glm::vec3(0.2f));
+        shader.setVec3("dlight.specular",glm::vec3(0.5f));
 
         view = glm::lookAt(cameraPos,cameraFront + cameraPos,cameraUp);
         shader.setMat4("view",view);
 
-
-        mshader.use();
-
-        mshader.setVec3("plight.position",cubePositions[9]);
-        mshader.setVec3("plight.ambient",glm::vec3(0.2));
-        mshader.setVec3("plight.diffuse",glm::vec3(1.0));
-        mshader.setVec3("plight.specular",glm::vec3(1.0));
-        mshader.setFloat("plight.constant",1.0f);
-        mshader.setFloat("plight.linear",0.09f);
-        mshader.setFloat("plight.qudratic",0.032f);
-
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(4.0f,0,-4+sin(glfwGetTime())));
-        model = glm::scale(model, glm::vec3(0.9f));
-        mshader.setMat4("model",model);
-        mshader.setMat4("view",view);
-        mshader.setMat4("proj",proj);
-        glBindVertexArray(VAO3);
-        ourModel.Draw(mshader);
-
-        shader.use();
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, t0);
         glActiveTexture(GL_TEXTURE1);
@@ -351,29 +435,62 @@ int main()
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
-        s1.use();
+
+        mshader.use();
+
+        mshader.setVec3("plight.position",cubePositions[9]);
+        mshader.setVec3("plight.ambient",glm::vec3(0.3f));
+        mshader.setVec3("plight.diffuse",glm::vec3(0.5f));
+        mshader.setVec3("plight.specular",glm::vec3(1.0f));
+        mshader.setFloat("plight.constant",1.0f);
+        mshader.setFloat("plight.linear",0.09f);
+        mshader.setFloat("plight.qudratic",0.032f);
+
+        mshader.setVec3("dlight.direction",glm::vec3(0,0,-1));
+        mshader.setVec3("dlight.ambient",glm::vec3(0.2f));
+        mshader.setVec3("dlight.diffuse",glm::vec3(0.2f));
+        mshader.setVec3("dlight.specular",glm::vec3(0.5f));
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(4.0f,0,-4+sin(glfwGetTime())));
+        model = glm::scale(model, glm::vec3(0.9f));
+        mshader.setMat4("model",model);
+        mshader.setMat4("view",view);
+        mshader.setMat4("proj",proj);
+        glBindVertexArray(VAO3);
+        ourModel.Draw(mshader);
+
+        s1.use(); //zute kocke
         s1.setMat4("model",model);
         s1.setMat4("view",view);
         s1.setMat4("proj",proj);
         s1.setVec3("viewPos",cameraPos);
 
-        s1.setVec3("material.ambient",glm::vec3(1.0,1.0,0));
-        s1.setVec3("material.diffuse",glm::vec3(1.0,1.0,0));
-        s1.setVec3("material.specular",glm::vec3(1.0));
-        s1.setFloat("material.shininess",32);
+        s1.setVec3("material.ambient",glm::vec3(0.9f,0.9f,0.9f));
+        s1.setVec3("material.diffuse",glm::vec3(0.9f,0.9f,0.9f));
+        s1.setVec3("material.specular",glm::vec3(0.7f));
+        s1.setFloat("material.shininess",32.0f);
 
         s1.setVec3("plight.position",cubePositions[9]);
-        s1.setVec3("plight.ambient",glm::vec3(0.2));
-        s1.setVec3("plight.diffuse",glm::vec3(1.0));
-        s1.setVec3("plight.specular",glm::vec3(1.0));
+        s1.setVec3("plight.ambient",glm::vec3(0.3f));
+        s1.setVec3("plight.diffuse",glm::vec3(0.5f));
+        s1.setVec3("plight.specular",glm::vec3(1.0f));
         s1.setFloat("plight.constant",1.0f);
         s1.setFloat("plight.linear",0.09f);
         s1.setFloat("plight.qudratic",0.032f);
 
-        s1.setVec3("dight.direction",glm::vec3(0,0,1));
-        s1.setVec3("dlight.ambient",glm::vec3(0.2));
-        s1.setVec3("dlight.diffuse",glm::vec3(1.0));
-        s1.setVec3("dlight.specular",glm::vec3(1.0));
+        s1.setVec3("bluelight.position",glm::vec3(0.0f,-5.0f,-20.0f));
+        s1.setVec3("bluelight.ambient",glm::vec3(0.1f,0.3f,100.0f));
+        s1.setVec3("bluelight.diffuse",glm::vec3(0.1f,0.3f,100.0f));
+        s1.setVec3("bluelight.specular",glm::vec3(0.9f));
+        s1.setFloat("bluelight.constant",1.0f);
+        s1.setFloat("bluelight.linear",0.09f);
+        s1.setFloat("bluelight.qudratic",0.032f);
+
+        s1.setVec3("dlight.direction",glm::vec3(0,0,-1));
+        s1.setVec3("dlight.ambient",glm::vec3(0.2f));
+        s1.setVec3("dlight.diffuse",glm::vec3(0.2f));
+        s1.setVec3("dlight.specular",glm::vec3(0.5f));
 
         glBindVertexArray(VAO2);
 
@@ -403,28 +520,50 @@ int main()
         izvor.setMat4("model",model);
 
         glBindVertexArray(izvorVAO);
-        //glDrawArrays(GL_TRIANGLES, 0, 36);
         glDrawElements(GL_TRIANGLES,36,GL_UNSIGNED_INT,0);
+        izvor.setVec3("lcol",glm::vec3(0.1f,0.3f,0.8f));
+        model = glm::translate(model, glm::vec3(0.0f,-5.0f,-20.0f));
+        izvor.setMat4("model",model);
+        //shader.setVec3("plight.position",glm::vec3(0.0,-10.0,-20.0));
+        glDrawElements(GL_TRIANGLES,36,GL_UNSIGNED_INT,0);
+
+        windowShader.use();
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glBindVertexArray(transparentVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, t2);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(1.0f,1.0f,1.0f));
+        windowShader.setMat4("model", model);
+        windowShader.setMat4("view", view);
+        windowShader.setMat4("proj", proj);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDisable(GL_CULL_FACE);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glDisable(GL_DEPTH_TEST);
+
+        hdrShader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, colorBuffer);
+        hdrShader.setFloat("exposure", 1.0f);
+
+        aaShader.use();
+        glBindVertexArray(quadVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, textureColorBufferMultiSampled); // use the now resolved color attachment as the quad's texture
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-
-
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
-//    glDeleteVertexArrays(1, &VAO);
-//    glDeleteBuffers(1, &VBO);
-
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
     glfwTerminate();
     return 0;
 }
-
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
