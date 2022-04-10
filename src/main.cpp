@@ -171,13 +171,6 @@ int main()
 
     };
 
-        float vertices3[] = {
-            0.5f, 0.5f, 1.0f,0.0f,0.0f,
-            0.5f, -0.5f, 0.0f,0.0f,1.0f,
-            -0.5f, -0.5f, 0.0f,1.0f,1.0f,
-            -0.5f, 0.5f, 1.0f,1.0f,0.0f
-    };
-
     float transparentVertices[] = {
             // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
             0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
@@ -404,8 +397,8 @@ int main()
         shader.setFloat("plight.qudratic",0.032f);
 
         shader.setVec3("bluelight.position",glm::vec3(0.0f,-5.0f,-20.0f));
-        shader.setVec3("bluelight.ambient",glm::vec3(0.1f,0.3f,100.0f));
-        shader.setVec3("bluelight.diffuse",glm::vec3(0.1f,0.3f,100.0f));
+        shader.setVec3("bluelight.ambient",glm::vec3(0.1f,0.3f,200.0f));
+        shader.setVec3("bluelight.diffuse",glm::vec3(0.1f,0.3f,200.0f));
         shader.setVec3("bluelight.specular",glm::vec3(0.9f));
         shader.setFloat("bluelight.constant",1.0f);
         shader.setFloat("bluelight.linear",0.09f);
@@ -460,7 +453,7 @@ int main()
         glBindVertexArray(VAO3);
         ourModel.Draw(mshader);
 
-        s1.use(); //zute kocke
+        s1.use(); //bele kocke
         s1.setMat4("model",model);
         s1.setMat4("view",view);
         s1.setMat4("proj",proj);
@@ -480,8 +473,8 @@ int main()
         s1.setFloat("plight.qudratic",0.032f);
 
         s1.setVec3("bluelight.position",glm::vec3(0.0f,-5.0f,-20.0f));
-        s1.setVec3("bluelight.ambient",glm::vec3(0.1f,0.3f,100.0f));
-        s1.setVec3("bluelight.diffuse",glm::vec3(0.1f,0.3f,100.0f));
+        s1.setVec3("bluelight.ambient",glm::vec3(0.1f,0.3f,200.0f));
+        s1.setVec3("bluelight.diffuse",glm::vec3(0.1f,0.3f,200.0f));
         s1.setVec3("bluelight.specular",glm::vec3(0.9f));
         s1.setFloat("bluelight.constant",1.0f);
         s1.setFloat("bluelight.linear",0.09f);
