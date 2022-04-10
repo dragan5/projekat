@@ -169,7 +169,7 @@ int main()
             0.5f,  0.5f,  0.5f,
             -0.5f,  0.5f,  0.5f,
 
-    };
+    }; //temena za indeksno crtanje izvora svetlosti
 
     float transparentVertices[] = {
             // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)

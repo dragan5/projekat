@@ -1,4 +1,4 @@
-//zute kocke
+//kocke bez teksture
 #version 330 core
 
 struct Material {
