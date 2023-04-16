@@ -10,3 +10,5 @@ Y - kretanje na gore
 X - kretanje na dole
 
 https://youtu.be/Ddf5phMa5fM
+
+Projekat je od prosle godine
